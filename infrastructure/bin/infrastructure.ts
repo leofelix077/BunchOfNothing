@@ -43,7 +43,7 @@ export class InfrastructureStack extends cdk.Stack {
     const GOOGLE_SERVICE_ACCOUNT = ssm.StringParameter.valueForStringParameter(
       this,
       "google-service-account-a",
-      1
+      2
     );
 
     const container = taskDefinition.addContainer("web", {
