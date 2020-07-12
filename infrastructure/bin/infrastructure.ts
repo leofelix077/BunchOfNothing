@@ -54,7 +54,7 @@ export class InfrastructureStack extends cdk.Stack {
     });
 
     container.addPortMappings({
-      containerPort: 80,
+      containerPort: 8080,
       hostPort: 8080,
       protocol: ecs.Protocol.TCP,
     });
@@ -70,11 +70,11 @@ export class InfrastructureStack extends cdk.Stack {
     });
 
     const listener = lb.addListener("Listener", {
-      port: 80,
+      port: 8080,
     });
 
     listener.addTargets("Target", {
-      port: 80,
+      port: 8080,
       targets: [asg],
     });
 
