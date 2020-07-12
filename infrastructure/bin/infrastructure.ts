@@ -82,7 +82,8 @@ export class InfrastructureStack extends cdk.Stack {
     });
 
     const listener = lb.addListener("Listener", {
-      port: 8080,
+      port: 80,
+      open: true,
     });
 
     listener.addTargets("Target", {
