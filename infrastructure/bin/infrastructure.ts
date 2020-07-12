@@ -39,13 +39,17 @@ export class InfrastructureStack extends cdk.Stack {
       1
     );
 
+    const logDriver = new ecs.AwsLogDriver({
+      streamPrefix: "ecs",
+    });
+
     const loadBalancer = new ecsPatterns.ApplicationLoadBalancedEc2Service(
       this,
       "app-service2",
       {
         cluster,
         memoryLimitMiB: 512,
-        cpu: 2,
+        cpu: 4,
         desiredCount: 1,
         serviceName: "nothing-api",
         taskImageOptions: {
@@ -54,6 +58,7 @@ export class InfrastructureStack extends cdk.Stack {
           environment: {
             GOOGLE_SERVICE_ACCOUNT,
           },
+          logDriver,
         },
         publicLoadBalancer: true,
       }
