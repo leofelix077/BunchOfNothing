@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src --ext ts,js --exec node_modules/.bin/babel-node --extensions .ts,.js src/index.ts",
-    "build": "babel src -d build --source-maps --ignore '**/*.test.js,**/*.test.ts' --extensions .ts,.js"
+    "build": "babel src -d build --source-maps --ignore '**/*.test.js,**/*.test.ts' --extensions .ts,.js",
+    "docker-build": "sudo docker build -f nothing-api.Dockerfile -t nothing-api ."
   },
   "author": "",
   "license": "ISC",
