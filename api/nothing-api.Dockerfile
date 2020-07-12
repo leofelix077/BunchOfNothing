@@ -15,4 +15,4 @@ RUN yarn build
 RUN rm -rf ./src
 
 EXPOSE 8080
-CMD ["node", "./build/index.js"]
+CMD ["node", "./build/server.js"]

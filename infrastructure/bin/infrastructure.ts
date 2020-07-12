@@ -40,17 +40,27 @@ export class InfrastructureStack extends cdk.Stack {
       streamPrefix: "ecs",
     });
 
-    const GOOGLE_SERVICE_ACCOUNT = ssm.StringParameter.valueForStringParameter(
+    const FIREBASE_PRIVATE_KEY = ssm.StringParameter.valueForStringParameter(
       this,
-      "google-service-account-a",
+      "firebase-private-key",
       2
+    );
+
+    const FIREBASE_PRIVATE_KEY_ID = ssm.StringParameter.valueForStringParameter(
+      this,
+      "firebase-private-key-id",
+      1
     );
 
     const container = taskDefinition.addContainer("web", {
       image,
       memoryLimitMiB: 256,
       logging: logDriver,
-      environment: { GOOGLE_SERVICE_ACCOUNT },
+      environment: {
+        FIREBASE_PRIVATE_KEY,
+        NODE_PORT: "8080",
+        FIREBASE_PRIVATE_KEY_ID,
+      },
     });
 
     container.addPortMappings({
@@ -74,11 +84,17 @@ export class InfrastructureStack extends cdk.Stack {
     });
 
     listener.addTargets("Target", {
-      port: 8080,
-      targets: [asg],
+      port: 80,
+      targets: [
+        asg,
+        service.loadBalancerTarget({
+          containerName: "web",
+          containerPort: 8080,
+        }),
+      ],
     });
 
-    listener.connections.allowDefaultPortFromAnyIpv4("Open to the world");
+    listener.connections.allowDefaultPortFromAnyIpv4("Public API");
 
     repo.grant(taskDefinition.executionRole as any, "ecr:*");
     repo.grant(taskDefinition.taskRole as any, "ecr:*");
@@ -86,6 +102,10 @@ export class InfrastructureStack extends cdk.Stack {
 
     asg.scaleOnRequestCount("LoadRequest", {
       targetRequestsPerSecond: 1,
+    });
+
+    new cdk.CfnOutput(this, "LoadBalancerDNS", {
+      value: lb.loadBalancerDnsName,
     });
   }
 }
