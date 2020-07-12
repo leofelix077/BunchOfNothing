@@ -33,12 +33,17 @@ export class InfrastructureStack extends cdk.Stack {
         cpu: 2,
         desiredCount: 1,
         serviceName: "nothing-api",
-
         taskImageOptions: {
           image: ecs.ContainerImage.fromRegistry(
             "502612239066.dkr.ecr.eu-central-1.amazonaws.com/bunch-of-nothing/nothing-api:latest"
           ),
           containerPort: 8080,
+          environment: {
+            GOOGLE_SERVICE_ACCOUNT:
+              (process.env.GOOGLE_SERVICE_ACCOUNT &&
+                JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT)) ||
+              "",
+          },
         },
         publicLoadBalancer: true,
       }
