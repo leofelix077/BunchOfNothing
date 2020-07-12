@@ -1,12 +1,15 @@
-schema:
-  "./api/src/graphql/**/*.{js,ts}":
-    noRequire: true
-documents: "./web-client/src/graphql/**/*.graphql"
+schema: http://localhost:3100/graphql
+documents: "./app/src/graphql/**/*.graphql"
 generates:
-  "./api/src/ts-types/graphql-types.d.ts":
-    - typescript
-    - typescript-resolvers
-  "./web-client/src/graphql/graphql.ts":
+  "./api/src/ts-types/graphql-types.ts":
+    plugins:
+      - typescript
+      - typescript-resolvers
+    config:
+      useIndexSignature: true
+      namingConvention:
+        enumValues: upper-case#upperCase
+  "./app/src/graphql/graphql.ts":
     plugins:
       - typescript
       - typescript-operations
@@ -14,5 +17,5 @@ generates:
     config:
       withComponent: false
       withHooks: true
+      reactApolloVersion: 3
       withHOC: false
-      hooksImportFrom: "@apollo/react-hooks"
