@@ -7,7 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src --ext ts,js --exec node_modules/.bin/babel-node --extensions .ts,.js src/index.ts",
     "build": "babel src -d build --source-maps --ignore '**/*.test.js,**/*.test.ts' --extensions .ts,.js",
-    "docker-build": "sudo docker build -f nothing-api.Dockerfile -t nothing-api ."
+    "docker-build": "sudo docker build -f nothing-api.Dockerfile -t nothing-api .",
+    "docker-tag": "sudo docker tag nothing-api:latest 502612239066.dkr.ecr.eu-central-1.amazonaws.com/bunch-of-nothing/nothing-api:latest",
+    "docker-deploy-ecr": "sudo docker push 502612239066.dkr.ecr.eu-central-1.amazonaws.com/bunch-of-nothing/nothing-api:latest",
+    "update-ecs-image": "aws ecs update-service --cluster nothing-cluster --service nothing-api --force-new-deployment",
+    "get-ecr-login": "sudo `aws ecr get-login --no-include-email`",
+    "deploy-api": "docker-build && docker-tag && get-ecr-login && docker-deploy-ecr && update-ecs-image"
   },
   "author": "",
   "license": "ISC",
