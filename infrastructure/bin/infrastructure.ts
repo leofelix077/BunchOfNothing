@@ -3,7 +3,7 @@ import ecr = require("@aws-cdk/aws-ecr");
 import ecs = require("@aws-cdk/aws-ecs");
 import ec2 = require("@aws-cdk/aws-ec2");
 import ssm = require("@aws-cdk/aws-ssm");
-import ecsPatterns = require("@aws-cdk/aws-ecs-patterns");
+import elbv2 = require("@aws-cdk/aws-elasticloadbalancingv2");
 
 const AWS_ACCOUNT = process.env.AWS_ACCOUNT;
 const AWS_REGION = process.env.AWS_REGION;
@@ -13,7 +13,7 @@ export class InfrastructureStack extends cdk.Stack {
 
     const repo = ecr.Repository.fromRepositoryArn(
       this,
-      "nothing-api",
+      "nothing-api-repo",
       "arn:aws:ecr:eu-central-1:502612239066:repository/bunch-of-nothing/nothing-api"
     );
 
@@ -24,14 +24,21 @@ export class InfrastructureStack extends cdk.Stack {
       vpc,
     });
 
-    cluster.addCapacity("app-scaling-group2", {
-      instanceType: new ec2.InstanceType("t2.micro"),
-      minCapacity: 1,
-      maxCapacity: 8,
+    const asg = cluster.addCapacity("app-scaling-group2", {
+      instanceType: ec2.InstanceType.of(
+        ec2.InstanceClass.T2,
+        ec2.InstanceSize.MICRO
+      ),
       machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
     });
 
     const image = ecs.ContainerImage.fromEcrRepository(repo, "latest");
+
+    const taskDefinition = new ecs.Ec2TaskDefinition(this, "nothing-api");
+
+    const logDriver = new ecs.AwsLogDriver({
+      streamPrefix: "ecs",
+    });
 
     const GOOGLE_SERVICE_ACCOUNT = ssm.StringParameter.valueForStringParameter(
       this,
@@ -39,32 +46,47 @@ export class InfrastructureStack extends cdk.Stack {
       1
     );
 
-    const logDriver = new ecs.AwsLogDriver({
-      streamPrefix: "ecs",
+    const container = taskDefinition.addContainer("web", {
+      image,
+      memoryLimitMiB: 256,
+      logging: logDriver,
+      environment: { GOOGLE_SERVICE_ACCOUNT },
     });
 
-    const loadBalancer = new ecsPatterns.ApplicationLoadBalancedEc2Service(
-      this,
-      "app-service2",
-      {
-        cluster,
-        memoryLimitMiB: 512,
-        cpu: 4,
-        desiredCount: 1,
-        serviceName: "nothing-api",
-        taskImageOptions: {
-          image,
-          containerPort: 8080,
-          environment: {
-            GOOGLE_SERVICE_ACCOUNT,
-          },
-          logDriver,
-        },
-        publicLoadBalancer: true,
-      }
-    );
-    repo.grant(loadBalancer.taskDefinition.executionRole as any, "ecr:*");
-    repo.grant(loadBalancer.taskDefinition.taskRole as any, "ecr:*");
+    container.addPortMappings({
+      containerPort: 80,
+      hostPort: 8080,
+      protocol: ecs.Protocol.TCP,
+    });
+
+    const service = new ecs.Ec2Service(this, "app-service2", {
+      cluster,
+      taskDefinition,
+    });
+
+    const lb = new elbv2.ApplicationLoadBalancer(this, "LB", {
+      vpc,
+      internetFacing: true,
+    });
+
+    const listener = lb.addListener("Listener", {
+      port: 80,
+    });
+
+    listener.addTargets("Target", {
+      port: 80,
+      targets: [asg],
+    });
+
+    listener.connections.allowDefaultPortFromAnyIpv4("Open to the world");
+
+    repo.grant(taskDefinition.executionRole as any, "ecr:*");
+    repo.grant(taskDefinition.taskRole as any, "ecr:*");
+    repo.grant(service.taskDefinition.taskRole, "ecr:*");
+
+    asg.scaleOnRequestCount("LoadRequest", {
+      targetRequestsPerSecond: 1,
+    });
   }
 }
 
