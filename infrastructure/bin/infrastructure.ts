@@ -30,6 +30,8 @@ export class InfrastructureStack extends cdk.Stack {
         ec2.InstanceSize.MICRO
       ),
       machineImage: ecs.EcsOptimizedImage.amazonLinux2(),
+      minCapacity: 1,
+      maxCapacity: 4,
     });
 
     const image = ecs.ContainerImage.fromEcrRepository(repo, "latest");
